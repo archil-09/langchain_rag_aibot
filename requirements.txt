@@ -5,3 +5,5 @@ docling
 langchain-huggingface
 langchain-chroma
 langchain-community
+requests
+flask
