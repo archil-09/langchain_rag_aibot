@@ -1,7 +1,7 @@
 langchain-groq
 python-dotenv
 langchain-docling
-
+gunicorn
 langchain-huggingface
 langchain-chroma
 langchain-community

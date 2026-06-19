@@ -32,7 +32,17 @@ start_reminder_scheduler()
 
 # ── Conversation memory ─────────────────────────────────────────────
 user_sessions = {}
-processed_messages = set()
+PROCESSED_FILE = "appointments/processed_ids.txt"
+
+def is_duplicate(message_id: str) -> bool:
+    if not os.path.exists(PROCESSED_FILE):
+        return False
+    with open(PROCESSED_FILE, "r") as f:
+        return message_id in f.read().splitlines()
+
+def mark_processed(message_id: str):
+    with open(PROCESSED_FILE, "a") as f:
+        f.write(message_id + "\n")
 
 def handle_booking_flow(phone: str, message: str) -> str:
     """Multi-step conversation flow for booking an appointment"""
@@ -207,9 +217,9 @@ def webhook():
         message_id = message["id"]
 
         # Ignore duplicate messages
-        if message_id in processed_messages:
+        if is_duplicate(message_id):
             return jsonify({"status": "ok"})
-        processed_messages.add(message_id)
+        mark_processed(message_id)
 
         phone = message["from"]
         text = message["text"]["body"]
@@ -233,4 +243,5 @@ def home():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
