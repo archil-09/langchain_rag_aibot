@@ -11,7 +11,10 @@ from src.appointment import (
     reschedule_appointment,
     cancel_appointment,
     get_appointment,
-    init_appointments_file
+    init_appointments_file,
+    validate_date,
+    validate_time
+
 )
 from src.whatsapp import send_message
 from src.reminder import start_reminder_scheduler
@@ -30,7 +33,6 @@ start_reminder_scheduler()
 # ── Conversation memory ─────────────────────────────────────────────
 user_sessions = {}
 processed_messages = set()
-
 
 def handle_booking_flow(phone: str, message: str) -> str:
     """Multi-step conversation flow for booking an appointment"""
@@ -58,6 +60,12 @@ def handle_booking_flow(phone: str, message: str) -> str:
         )
 
     elif step == "get_date":
+        if not validate_date(message.strip()):
+            return (
+                "❌ That doesn't look like a valid date.\n"
+                "Please enter in format: YYYY-MM-DD\n"
+                "Example: 2026-06-20"
+            )
         data["date"] = message.strip()
         user_sessions[phone] = {"flow": "booking", "step": "get_time", "data": data}
         return (
@@ -67,6 +75,12 @@ def handle_booking_flow(phone: str, message: str) -> str:
         )
 
     elif step == "get_time":
+        if not validate_time(message.strip()):
+            return (
+                "❌ That doesn't look like a valid time.\n"
+                "Please enter in format: HH:MM AM/PM\n"
+                "Example: 3:00 PM"
+            )
         data["time"] = message.strip()
         result = book_appointment(
             name=data["name"],
@@ -112,6 +126,20 @@ def handle_reschedule_flow(phone: str, message: str) -> str:
 def process_message(phone: str, message: str) -> str:
     """Main message router — detects intent and handles accordingly"""
     message_lower = message.lower().strip()
+    greetings = ["hi", "hii", "hello", "hey", "heya", "hii!", "hi!", "namaste"]
+    if message_lower in greetings:
+        if phone not in user_sessions:
+            return (
+                "👋 Hello! Welcome to our dental clinic.\n\n"
+                "I can help you:\n"
+                "📅 Book an appointment\n"
+                "🔄 Reschedule or cancel\n"
+                "❓ Answer questions about treatments\n\n"
+                "How can I help you today?"
+            )
+
+    # If user is mid-conversation handle it first
+
 
     # If user is mid-conversation handle it first
     if phone in user_sessions:
@@ -190,8 +218,10 @@ def webhook():
         reply = process_message(phone, text)
         send_message(phone, reply)
 
-    except (KeyError, IndexError):
-        pass
+    except Exception as e:
+        print(f"ERROR: {e}")
+        import traceback
+        traceback.print_exc()
 
     return jsonify({"status": "ok"})
 

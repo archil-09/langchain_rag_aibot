@@ -39,13 +39,14 @@ def write_appointments(appointments: list[dict]):
         writer.writerows(appointments)
 
 
-# ── Book new appointment ────────────────────────────────────────────
+# ── Book
 def book_appointment(name: str, phone: str, treatment: str, date: str, time: str) -> str:
     """Add new appointment to CSV"""
     init_appointments_file()
 
-    # Check if patient already has a booked appointment
     appointments = read_appointments()
+
+    # Check if this patient already has a booking
     for apt in appointments:
         if apt["Phone"] == phone and apt["Status"] == "Booked":
             return (
@@ -54,7 +55,15 @@ def book_appointment(name: str, phone: str, treatment: str, date: str, time: str
                 f"Would you like to reschedule it instead?"
             )
 
-    # Add new appointment
+    # Check if this date+time slot is already taken by someone else
+    for apt in appointments:
+        if apt["Date"] == date and apt["Time"] == time and apt["Status"] == "Booked":
+            return (
+                f"❌ Sorry, {date} at {time} is already booked by another patient.\n"
+                f"Please choose a different time."
+            )
+
+    # Slot is free — book it
     with open(APPOINTMENTS_FILE, "a", newline="") as f:
         writer = csv.writer(f)
         writer.writerow([name, phone, treatment, date, time, "Booked"])
@@ -68,7 +77,6 @@ def book_appointment(name: str, phone: str, treatment: str, date: str, time: str
         f"We'll send you a reminder the day before. "
         f"To reschedule, just message us anytime!"
     )
-
 
 # ── Reschedule appointment ──────────────────────────────────────────
 def reschedule_appointment(phone: str, new_date: str, new_time: str) -> str:
@@ -155,3 +163,19 @@ def get_tomorrows_appointments() -> list[dict]:
         apt for apt in appointments
         if apt["Date"] == tomorrow and apt["Status"] == "Booked"
     ]
+from datetime import datetime
+
+def validate_date(date_str: str) -> bool:
+    try:
+        datetime.strptime(date_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+
+def validate_time(time_str: str) -> bool:
+    try:
+        datetime.strptime(time_str, "%I:%M %p")
+        return True
+    except ValueError:
+        return False
